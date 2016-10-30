@@ -3,6 +3,11 @@
 # Converting CSc 110 "Critters" program from java to python.
 #
 
+# Global variable, once a critter class is implemented, put its name in here
+CLASS_NAMES = ["Rock"]
+
+SELECTED_CLASSES = []
+
 # Imports
 import atexit
 import sys
@@ -32,6 +37,7 @@ class Model:
     def __init__(self, xSize, ySize, control):
 
         self.control = control
+        self.classes = []
 
         #self.world = [[None*xSize]*ySize]
         self.world = [[0 for x in range(ySize)] for y in range(xSize)]
@@ -41,13 +47,13 @@ class Model:
             for y in range(ySize):
                 self.world[x][y] = Critter()
 
-        self.files = getFiles()
-
-        for string in self.files:
-            if "Critter" in string or string in "Critters":
-                self.files.remove(string)
-            else:
-                print(string)
+        self.i = 0
+        for value in CLASS_NAMES:
+           print("Value: " + str(SELECTED_CLASSES[self.i]))
+           if (SELECTED_CLASSES[self.i] == 1):
+                print("Importing " + CLASS_NAMES[self.i])
+                self.classes.append(__import__(CLASS_NAMES[self.i]))
+           self.i += 1
 
     def getWorld(self):
         return self.world
@@ -109,11 +115,19 @@ class GUI(Tk):
         self.critterLabel.pack()        
         self.critterEntry.pack()
 
+        self.i = 0
+        for fileName in CLASS_NAMES:
+            SELECTED_CLASSES.append(0)
+            c = Checkbutton(self.frame, text=fileName, variable=SELECTED_CLASSES[self.i])
+            self.i += 1
+            c.pack()
+
         self.enterButton = Button(self.frame, text="Enter", fg="black", command=self.switchView)
         self.enterButton.pack()
 
         self.mainloop()
 
+    # Switch view from starting prompt to critters tournament
     def switchView(self):
 
         self.width = self.retrieve_input(self.widthEntry)
@@ -128,6 +142,7 @@ class GUI(Tk):
         else:
             self.errorWindow("Given inputs were not numbers")
 
+    # Draw the map and other aspects of GUI
     def setMapGUI(self):
 
         self.frame.destroy()
@@ -178,6 +193,7 @@ class GUI(Tk):
 
 # ---------- start Helper Functions ----------
 
+# check if input is valid
 def isValid(s):
 
     try: 
@@ -190,29 +206,6 @@ def isValid(s):
             return False
 
     except ValueError:
-        return False
-
-def getFiles():
-
-    obj_list = []
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-
-    for path, subdirs, files in os.walk(dir_path):
-        for name in files:
-            if fnmatch(name):
-                found_module = imp.find_module(name[:-3], [path])
-                module = imp.load_module(name, found_module[0], found_module[1], found_module[2])
-                for mem_name, obj in inspect.getmembers(module):
-                    if inspect.isclass(obj) and inspect.getmodule(obj) is module:
-                        obj_list.append(obj())
-
-    return obj_list
-
-def fnmatch(file):
-    if ".py" in file and "Critter" not in file:
-        file = file[:-3]
-        return True
-    else:
         return False
 
 # ---------- end Helper Functions ----------
