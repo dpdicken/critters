@@ -49,11 +49,14 @@ class Model:
 
         self.i = 0
         for value in CLASS_NAMES:
-           print("Value: " + str(SELECTED_CLASSES[self.i]))
-           if (SELECTED_CLASSES[self.i] == 1):
+           print("Value: " + str(SELECTED_CLASSES[self.i].get()))
+           if (SELECTED_CLASSES[self.i].get() == True):
                 print("Importing " + CLASS_NAMES[self.i])
                 self.classes.append(__import__(CLASS_NAMES[self.i]))
            self.i += 1
+
+#        for classVar in self.classes:
+#           self.inst = classVar() 
 
     def getWorld(self):
         return self.world
@@ -115,11 +118,12 @@ class GUI(Tk):
         self.critterLabel.pack()        
         self.critterEntry.pack()
 
-        self.i = 0
+        # Put tick boxes for each critter class in the directory to select if we want them in the tournament
+        i = 0
         for fileName in CLASS_NAMES:
-            SELECTED_CLASSES.append(0)
-            c = Checkbutton(self.frame, text=fileName, variable=SELECTED_CLASSES[self.i])
-            self.i += 1
+            SELECTED_CLASSES.append(BooleanVar())
+            c = Checkbutton(self.frame, text=fileName, variable=SELECTED_CLASSES[i], onvalue=1, offvalue=0)
+            i += 1
             c.pack()
 
         self.enterButton = Button(self.frame, text="Enter", fg="black", command=self.switchView)
@@ -163,6 +167,9 @@ class GUI(Tk):
 
         self.points = []
 
+        self.scale = Scale(self, from_=0, to=61, orient=HORIZONTAL)
+        self.scale.grid(row = 1, column = 0)
+
         while i < int(self.critters):
             self.randX = randInt(self.width - 1)
             self.randY = randInt(self.height - 1)
@@ -190,7 +197,6 @@ class GUI(Tk):
 
 # ---------- end GUI ----------
 
-
 # ---------- start Helper Functions ----------
 
 # check if input is valid
@@ -211,3 +217,4 @@ def isValid(s):
 # ---------- end Helper Functions ----------
 
 main()
+
