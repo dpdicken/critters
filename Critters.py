@@ -16,9 +16,11 @@ import subprocess
 import os
 import imp
 import inspect
+from time import sleep
 from random import *
 from Critter import *
 from tkinter import *
+from threading import Thread
 
 # ---------- start main ----------
 
@@ -34,10 +36,12 @@ def main():
 # Model represents the board and critter tournament
 class Model:
 
-    def __init__(self, xSize, ySize, control):
+    def __init__(self, xSize, ySize, numCritters, control):
 
         self.control = control
         self.classes = []
+        self.numCritters = numCritters
+        self.critters = []
 
         #self.world = [[None*xSize]*ySize]
         self.world = [[0 for x in range(ySize)] for y in range(xSize)]
@@ -49,14 +53,20 @@ class Model:
 
         self.i = 0
         for value in CLASS_NAMES:
-           print("Value: " + str(SELECTED_CLASSES[self.i].get()))
            if (SELECTED_CLASSES[self.i].get() == True):
                 print("Importing " + CLASS_NAMES[self.i])
-                self.classes.append(__import__(CLASS_NAMES[self.i]))
+                self.classes.append(getattr(__import__(CLASS_NAMES[self.i]), CLASS_NAMES[self.i]))
            self.i += 1
 
-#        for classVar in self.classes:
-#           self.inst = classVar() 
+        for className in self.classes:
+            for i in range(self.numCritters):
+                print("Creating a critter")
+                self.critters.append(className())
+
+    def turn(self):
+        print("")
+        #for critter in critters:
+            #critter.getX()
 
     def getWorld(self):
         return self.world
@@ -69,12 +79,35 @@ class Control:
     def __init__(self):
         self.width = 0
         self.height = 0
+        self.isRunning = False
 
     def setGUI(self, gui):
         self.gui = gui
         self.width = int(gui.width)
         self.height = int(gui.height)
-        self.model = Model(self.width, self.height, self)
+        self.critters = int(gui.critters)
+        self.speed = 1
+        self.model = Model(self.width, self.height, self.critters, self)
+
+    def run(self):
+
+        while True:
+
+            if self.isRunning:
+                sleep(self.getSpeed()/100)
+                self.model.turn()
+
+    def getSpeed(self):
+        return self.gui.getSpeed()
+
+    def start(self):
+        self.isRunning = True
+
+    def stop(self):
+        self.isRunning = False
+
+    def reset(self):
+        self.isRunnig = False
 
     def getMap(self):
         return self.model.getWorld()
@@ -92,7 +125,9 @@ class GUI(Tk):
 
     def __init__(self, control):
         Tk.__init__(self)
-        
+
+        self.thread = None
+
         self.frame = Frame(self)
         self.frame.pack()
 
@@ -153,7 +188,7 @@ class GUI(Tk):
         self.mapTemp = self.control.getMap()
 
         self.guiMap = Canvas(self, width=(self.width*12)+1,height=(self.height*12)+1, bg="lightgreen")
-        self.guiMap.grid(row = 0, column = 0)
+        self.guiMap.grid(row=0, column=0)
 
         self.multiple = 0
         for j in range(self.height + 2):
@@ -167,8 +202,35 @@ class GUI(Tk):
 
         self.points = []
 
-        self.scale = Scale(self, from_=0, to=61, orient=HORIZONTAL)
-        self.scale.grid(row = 1, column = 0)
+        self.frame = Frame(self)
+
+        self.scale = Scale(self.frame, from_=0, to=61, orient=HORIZONTAL)
+        self.scale.grid(row=1, column=0)
+
+        # GUI elements that keep track of number of moces
+        self.moveFrame = Frame(self.frame)
+        self.moveLabel = Label(self.moveFrame, text="Moves")
+        self.moveLabel.grid(row=0, column=0)
+        self.moveCountLabel = Label(self.moveFrame, text="0")
+        self.moveCountLabel.grid(row=1, column=0)
+        self.moveFrame.grid(row=1, column=1)
+
+        # Thread to run the control loop on
+        self.thread = Thread(target=self.control.run)
+        self.thread.daemon = True
+        self.thread.start()
+
+        # Buttons to control tournament
+        self.goButton = Button(self.frame, text=" Go ", command=self.control.start)
+        self.stopButton = Button(self.frame, text="Stop", command=self.control.stop)
+        self.tickButton = Button(self.frame, text="Tick", command=self.control.start)
+        self.resetButton = Button(self.frame, text="Reset", command=self.control.reset)
+        self.goButton.grid(row=1, column=2)
+        self.stopButton.grid(row=1, column=3)
+        self.tickButton.grid(row=1, column=4)
+        self.resetButton.grid(row=1, column=5)
+
+        self.frame.grid(row=1, column = 0)
 
         while i < int(self.critters):
             self.randX = randInt(self.width - 1)
@@ -179,6 +241,9 @@ class GUI(Tk):
                 i = i + 1
             else:
                 continue
+
+    def getSpeed(self):
+        return self.scale.get()
 
     # Give error message popup windows
     def errorWindow(self, msg):
